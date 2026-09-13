@@ -4,10 +4,14 @@ import dev.aether.bootstrap.AetherBootstrapHooks;
 import dev.aether.proxy.AetherProxyManager;
 import dev.aether.proxy.AetherProxyScreen;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,6 +24,8 @@ public abstract class MixinTitleScreen extends Screen {
     private static final int AETHER_BUTTON_WIDTH = 200;
     private static final int AETHER_BUTTON_HEIGHT = 20;
     private static final int AETHER_BUTTON_GAP = 4;
+    private static final int MENU_BUTTON_SPACING = 24;
+    private static final String HYPIXEL_ADDRESS = "mc.hypixel.net";
 
     protected MixinTitleScreen(Component title) {
         super(title);
@@ -46,7 +52,9 @@ public abstract class MixinTitleScreen extends Screen {
     }
 
     @Inject(method = "init", at = @At("TAIL"))
-    private void aether$addProxyButton(CallbackInfo ci) {
+    private void aether$addButtons(CallbackInfo ci) {
+        aether$addHypixelButton();
+
         int buttonX = this.width / 2 - AETHER_BUTTON_WIDTH / 2;
         int buttonY = aether$nextInjectedButtonY();
         this.addRenderableWidget(Button.builder(
@@ -54,6 +62,50 @@ public abstract class MixinTitleScreen extends Screen {
                         button -> Minecraft.getInstance().setScreen(new AetherProxyScreen(this)))
                 .bounds(buttonX, buttonY, AETHER_BUTTON_WIDTH, AETHER_BUTTON_HEIGHT)
                 .build());
+    }
+
+    private void aether$addHypixelButton() {
+        Button multiplayerButton = null;
+        for (var listener : this.children()) {
+            if (listener instanceof Button button
+                    && button.getMessage().equals(Component.translatable("menu.multiplayer"))) {
+                multiplayerButton = button;
+                break;
+            }
+        }
+        if (multiplayerButton == null) {
+            return;
+        }
+
+        int hypixelY = multiplayerButton.getY() + MENU_BUTTON_SPACING;
+        for (var listener : this.children()) {
+            if (listener instanceof AbstractWidget widget
+                    && widget.getY() >= hypixelY
+                    && widget.getY() < this.height - AETHER_BUTTON_HEIGHT) {
+                widget.setY(widget.getY() + MENU_BUTTON_SPACING);
+            }
+        }
+
+        Button hypixelButton = Button.builder(
+                        Component.literal("Hypixel"),
+                        button -> aether$connectToHypixel())
+                .bounds(multiplayerButton.getX(), hypixelY,
+                        multiplayerButton.getWidth(), multiplayerButton.getHeight())
+                .build();
+        hypixelButton.active = multiplayerButton.active;
+        this.addRenderableWidget(hypixelButton);
+    }
+
+    private void aether$connectToHypixel() {
+        Minecraft minecraft = Minecraft.getInstance();
+        ServerData serverData = new ServerData("Hypixel", HYPIXEL_ADDRESS, ServerData.Type.OTHER);
+        ConnectScreen.startConnecting(
+                this,
+                minecraft,
+                ServerAddress.parseString(HYPIXEL_ADDRESS),
+                serverData,
+                false,
+                null);
     }
 
     private int aether$nextInjectedButtonY() {
@@ -80,4 +132,3 @@ public abstract class MixinTitleScreen extends Screen {
         return replacement == this ? null : replacement;
     }
 }
-
