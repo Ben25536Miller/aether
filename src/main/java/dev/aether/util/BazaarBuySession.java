@@ -19,6 +19,7 @@ final class BazaarBuySession {
     private int pendingMenu = -1;
     private int pendingSlot = -1;
     private long readyAt;
+    private long retryAt;
     private int alertMenu = -1;
     private String alertTitle = "";
 
@@ -109,7 +110,11 @@ final class BazaarBuySession {
             }
             return false;
         }
-        if (menu == clickedMenu && slot == clickedSlot) return false;
+        if (menu == clickedMenu && slot == clickedSlot) {
+            if (now < retryAt) return false;
+            retryAt = now + Math.max(500L, delay);
+            return true;
+        }
         if (menu != pendingMenu || slot != pendingSlot) {
             pendingMenu = menu;
             pendingSlot = slot;
@@ -118,6 +123,7 @@ final class BazaarBuySession {
         if (now < readyAt) return false;
         clickedMenu = menu;
         clickedSlot = slot;
+        retryAt = now + Math.max(500L, delay);
         return true;
     }
 
