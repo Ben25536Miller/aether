@@ -18,7 +18,7 @@ class BazaarBuySessionTest {
                 new BazaarBuySession.MenuItem(31, "Cancel", true));
         assertEquals(-1, buy.confirmationSlot(7, "Confirm Instant Buy", items, 0, 300));
         assertEquals(13, buy.confirmationSlot(7, "Confirm Instant Buy", items, 300, 300));
-        assertEquals(-1, buy.confirmationSlot(7, "Confirm Instant Buy", items, 1000, 300));
+        assertEquals(13, buy.confirmationSlot(7, "Confirm Instant Buy", items, 1000, 300));
         assertFalse(buy.completed());
         buy.onChat("§6[Bazaar] §aBought 435x Enchanted Cocoa Beans for 219,957 coins!");
         assertTrue(buy.completed());
@@ -33,7 +33,7 @@ class BazaarBuySessionTest {
                     new BazaarBuySession.MenuItem(15, "Go Back", false));
             assertEquals(-1, buy.confirmationSlot(7, "Confirm Instant Buy", items, 0, 300));
             assertEquals(13, buy.confirmationSlot(7, "Confirm Instant Buy", items, 300, 300));
-            assertEquals(-1, buy.confirmationSlot(7, "Confirm Instant Buy", items, 1000, 300));
+            assertEquals(13, buy.confirmationSlot(7, "Confirm Instant Buy", items, 1000, 300));
             assertFalse(buy.completed());
         }
     }
@@ -96,7 +96,7 @@ class BazaarBuySessionTest {
         assertEquals(-1, buy.confirmationSlot(7, "Bazaar Alert!", ready, 5100, 300));
         assertEquals(-1, buy.confirmationSlot(7, "Bazaar Alert!", ready, 5399, 300));
         assertEquals(13, buy.confirmationSlot(7, "Bazaar Alert!", ready, 5400, 300));
-        assertEquals(-1, buy.confirmationSlot(7, "Bazaar Alert!", ready, 6000, 300));
+        assertEquals(13, buy.confirmationSlot(7, "Bazaar Alert!", ready, 6000, 300));
         assertFalse(buy.completed());
         buy.onChat("[Bazaar] Bought 435x Enchanted Cocoa Beans for 219,957 coins!");
         assertTrue(buy.completed());
@@ -114,6 +114,7 @@ class BazaarBuySessionTest {
             assertEquals(-1, buy.confirmationSlot(7, "Bazaar Alert!", unlocked, 5050, 300));
             assertEquals(13, buy.confirmationSlot(7, "Bazaar Alert!", unlocked, 5350, 300));
             assertEquals(-1, buy.confirmationSlot(7, "Bazaar Alert!", unlocked, 5700, 300));
+            assertEquals(13, buy.confirmationSlot(7, "Bazaar Alert!", unlocked, 5850, 300));
         }
     }
 
@@ -164,7 +165,7 @@ class BazaarBuySessionTest {
             assertFalse(buy.shouldConfirm(7, 13, false, 5_050, 300));
             assertFalse(buy.shouldConfirm(7, 13, false, 5_349, 300));
             assertTrue(buy.shouldConfirm(7, 13, false, 5_350, 300));
-            assertFalse(buy.shouldConfirm(7, 13, false, 6_000, 300));
+            assertTrue(buy.shouldConfirm(7, 13, false, 6_000, 300));
             assertFalse(buy.completed());
             buy.onChat("§6[Bazaar] §aBought " + quantity + "x Enchanted Wheat for 12,345 coins!");
             assertTrue(buy.completed());
@@ -180,6 +181,7 @@ class BazaarBuySessionTest {
         assertFalse(buy.shouldConfirm(7, 13, false, 4_050, 300));
         assertTrue(buy.shouldConfirm(7, 13, false, 4_350, 300));
         assertFalse(buy.shouldConfirm(7, 13, false, 4_700, 300));
+        assertTrue(buy.shouldConfirm(7, 13, false, 4_850, 300));
     }
 
     @Test

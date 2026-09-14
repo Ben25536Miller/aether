@@ -184,20 +184,6 @@ public final class LiveAetherBootstrapHooks implements AetherBootstrapHooks.Feat
     }
 
     @Override
-    public void onGameplayInput() {
-        Minecraft client = Minecraft.getInstance();
-        if (client.player == null || client.screen != null || !client.getWindow().isFocused()
-                || isFreecamEnabled()
-                || FreelookManager.isActive()
-                || dev.aether.modules.pest.ManualPestManager.isActive()) {
-            return;
-        }
-        if (MacroStateManager.isAutomationRunning()) {
-            MacroStateManager.stopMacro(client, "Automation interrupted by user input", false);
-        }
-    }
-
-    @Override
     public boolean shouldSuppressVanillaHud(Screen screen) {
         return AetherBootstrapHooks.isBootstrapConfigScreen(screen) || screen instanceof MainGUI || screen instanceof HudEditScreen;
     }

@@ -496,6 +496,16 @@ public class MainGUI extends NVGScreen {
         enterModuleDetail(subTab);
     }
 
+    void openSearchResult(int mainTab, ModulesTab.SubTab subTab, SettingGroup group, Setting setting) {
+        actions.openSearchResult(mainTab, subTab, group, setting);
+    }
+
+    void ensureSearchGroupVisible(SettingGroup group) {
+        if (group != null && !group.isAlwaysOn() && !showChildren(group)) {
+            forcedOverride.add(group);
+        }
+    }
+
     private List<ModulesTab.SubTab> flatSubtabsForFilter() {
         List<ModulesTab.SubTab> subs = subtabs();
         if (activeMain != 1) return subs;
@@ -2108,6 +2118,15 @@ public class MainGUI extends NVGScreen {
 
     float settingHeightFor(Setting setting, float width) {
         return settingH(setting, width);
+    }
+
+    float moduleSettingsWidth() {
+        float rightW = contW - MODULE_CAT_W - 1f;
+        return rightW - ITEM_PAD * 2f;
+    }
+
+    float moduleSettingsHeight() {
+        return contH - TOP_BAR_H - 1f - MOD_HEADER_H - 1f;
     }
 
     void renderMainScrollbar(NVGRenderer nvg, float totalContentHeight, float scrollTop, float scrollH, float barX) {
