@@ -53,6 +53,8 @@ final class PestCombatCoordinator {
     private static final long ETHERWARP_FAILED_BLOCK_MEMORY_MS = 15_000L;
     private static final int ETHERWARP_BLOCK_SCAN_DEPTH = 20;
     private static final double ETHERWARP_MIN_TRAVEL_DISTANCE = 3.0;
+    private static final double ETHERWARP_FRONT_OFFSET = 10.0;
+    private static final double ETHERWARP_FRONT_MATCH_TOLERANCE = 4;
     private static final double ETHERWARP_POST_HOVER_MIN_CLEARANCE = 3.0;
     private static final double ETHERWARP_POST_HOVER_RELEASE_CLEARANCE = 3.35;
     private static final int ETHERWARP_POST_HOVER_GROUND_SCAN_DEPTH = 32;
@@ -871,12 +873,25 @@ final class PestCombatCoordinator {
         if (candidates.isEmpty()) {
             return null;
         }
+
+        Vec3 pestPosition = pest.position();
+        Vec3 preferredLanding = getPreferredEtherwarpLanding(client, pest);
+        if (preferredLanding != null) {
+            double bestFrontDistance = candidates.stream()
+                    .mapToDouble(candidate -> horizontalDistance(candidate.landingFeet(), preferredLanding))
+                    .min()
+                    .orElse(Double.MAX_VALUE);
+            candidates = candidates.stream()
+                    .filter(candidate -> horizontalDistance(candidate.landingFeet(), preferredLanding)
+                            <= bestFrontDistance + ETHERWARP_FRONT_MATCH_TOLERANCE)
+                    .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+        }
+
         java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
         if (nextPest == null || nextPest.isRemoved()) {
             return candidates.get(random.nextInt(candidates.size()));
         }
         Vec3 nextPosition = nextPest.position();
-        Vec3 pestPosition = pest.position();
         candidates.sort(java.util.Comparator.comparingDouble(candidate ->
                 candidate.landingFeet().distanceTo(nextPosition)
                         + candidate.landingFeet().distanceTo(pestPosition) * 0.20));
@@ -891,6 +906,24 @@ final class PestCombatCoordinator {
             }
         }
         return nearBest.get(random.nextInt(nearBest.size()));
+    }
+
+    private static Vec3 getPreferredEtherwarpLanding(Minecraft client, Entity pest) {
+        double towardPlayerX = client.player.getX() - pest.getX();
+        double towardPlayerZ = client.player.getZ() - pest.getZ();
+        double horizontalDistance = Math.hypot(towardPlayerX, towardPlayerZ);
+        if (horizontalDistance < 1.0e-6) {
+            return null;
+        }
+
+        return new Vec3(
+                pest.getX() + towardPlayerX / horizontalDistance * ETHERWARP_FRONT_OFFSET,
+                pest.getY(),
+                pest.getZ() + towardPlayerZ / horizontalDistance * ETHERWARP_FRONT_OFFSET);
+    }
+
+    private static double horizontalDistance(Vec3 first, Vec3 second) {
+        return Math.hypot(first.x - second.x, first.z - second.z);
     }
 
     private static void clearPestEtherwarpAttempt(
