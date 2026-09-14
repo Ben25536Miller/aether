@@ -1,20 +1,19 @@
 package dev.aether.modules.profit.helpers;
 
+import dev.aether.macro.MacroStateManager;
 import dev.aether.modules.profit.ProfitManager;
 import dev.aether.util.NumberUtils;
 import dev.aether.util.TablistUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-// the action bar drives live gains, while the tab-list skills widget and the action bar fraction anchor the absolute level
+// the tab-list skills widget and action bar fraction provide direct absolute XP anchors
 // at high levels the action bar degrades from (cur/max) to (percent), which alone cannot resolve an absolute xp value
 public final class FarmingXpTracker {
 
@@ -39,7 +38,6 @@ public final class FarmingXpTracker {
 
     // -- Patterns --------------------------------------------------------------
 
-    private static final Pattern AB_GAIN = Pattern.compile("\\+([\\d.,]+)\\s+Farming");
     private static final Pattern AB_FRACTION = Pattern.compile(
             "Farming\\s+\\(([\\d.,]+)/([\\d.,]+[kKmMbB]?)\\)");
 
@@ -50,30 +48,13 @@ public final class FarmingXpTracker {
     private static final Pattern TAB_PERCENT = Pattern.compile(
             "Farming\\s+(\\d+):\\s+([\\d.,]+)%");
 
-    // -- Rolling-window config -------------------------------------------------
-
-    private static final int RATE_WINDOW = 60;         // seconds of history averaged (SkyHanni uses 30; 60
-                                                       // smooths the spikes from Hypixel's coarse XP batches)
-    private static final int RATE_GRACE_SECONDS = 5;   // keep the rate alive through short farming pauses
-    private static final long RATE_TICK_MS = 1_000L;   // recompute once a second
-
     private static final Object LOCK = new Object();
 
-    // Per-second absolute-XP deltas (newest first), capped at RATE_WINDOW. XP/hour is the window
-    // average (sum * 3600 / size) -- the SkyHanni approach: steady on the coarse XP staircase. A
-    // grace timer pads short pauses with zero-seconds instead of clearing the window (which dropped
-    // the rate) or decaying between server updates (which sawtoothed it).
-    private static final Deque<Double> xpGainQueue = new ArrayDeque<>();
-    private static long lastRateMs = 0L;
-    private static long lastTotalXp = -1L;
-    private static int graceTimer = 0;
-
     // Cross-thread readable scalars for the HUD.
-    private static volatile double sessionXpGained = 0.0;
-    private static volatile double xpPerHour = 0.0;
-    private static volatile boolean active = false;
+    private static volatile long sessionXpGained = 0L;
     private static volatile int currentLevel = -1;
     private static volatile long absoluteXp = -1L;
+    private static volatile long sessionStartAbsoluteXp = -1L;
 
     private FarmingXpTracker() {}
 
@@ -88,31 +69,6 @@ public final class FarmingXpTracker {
             return;
         }
 
-        Matcher gain = AB_GAIN.matcher(s);
-        if (!gain.find()) {
-            return;
-        }
-        double gained;
-        try {
-            gained = parseNum(gain.group(1));
-        } catch (NumberFormatException e) {
-            return;
-        }
-        if (gained <= 0) {
-            return;
-        }
-
-        synchronized (LOCK) {
-            sessionXpGained += gained;
-            // Keep the absolute anchor fresh between (cur/max) reads; the fraction below
-            // and the tab list re-anchor it to server-truth whenever they appear.
-            if (absoluteXp >= 0) {
-                absoluteXp += (long) gained;
-            }
-        }
-
-        // Refine the absolute anchor from the fraction form when present (low/mid
-        // levels). The percent form lacks a level here; the tab list covers that.
         Matcher frac = AB_FRACTION.matcher(s);
         if (frac.find()) {
             try {
@@ -165,63 +121,12 @@ public final class FarmingXpTracker {
         }
     }
 
-    // call once per game tick; recomputes once a second
-    public static void tick() {
-        if (!ProfitManager.isProfitTrackingActive()) {
-            return;
-        }
-        long now = System.currentTimeMillis();
-        synchronized (LOCK) {
-            if (absoluteXp < 0) {
-                return; // no absolute anchor yet
-            }
-            if (lastRateMs == 0L) {
-                lastRateMs = now;        // seed the per-second baseline
-                lastTotalXp = absoluteXp;
-                return;
-            }
-            if (now - lastRateMs < RATE_TICK_MS) {
-                return; // one bucket per second
-            }
-            lastRateMs = now;
-            long delta = absoluteXp - lastTotalXp;
-            lastTotalXp = absoluteXp;
-
-            if (delta > 0L) {
-                graceTimer = RATE_GRACE_SECONDS; // real gain: keep the window alive
-                xpGainQueue.addFirst((double) delta);
-                active = true;
-            } else if (graceTimer > 0) {
-                graceTimer--;                    // short pause: pad a zero-second, don't clear
-                xpGainQueue.addFirst(0.0);
-                active = true;
-            } else {
-                active = false;                  // idle past grace: freeze the last rate, keep the queue
-                return;
-            }
-
-            while (xpGainQueue.size() > RATE_WINDOW) {
-                xpGainQueue.removeLast();
-            }
-            double sum = 0.0;
-            for (double g : xpGainQueue) {
-                sum += g;
-            }
-            xpPerHour = xpGainQueue.isEmpty() ? 0.0 : sum * 3600.0 / xpGainQueue.size();
-        }
-    }
-
     public static void reset() {
         synchronized (LOCK) {
-            xpGainQueue.clear();
-            lastRateMs = 0L;
-            lastTotalXp = -1L;
-            graceTimer = 0;
-            sessionXpGained = 0.0;
-            xpPerHour = 0.0;
-            active = false;
+            sessionXpGained = 0L;
             currentLevel = -1;
             absoluteXp = -1L;
+            sessionStartAbsoluteXp = -1L;
         }
     }
 
@@ -236,7 +141,7 @@ public final class FarmingXpTracker {
     }
 
     public static boolean isPaused() {
-        return !active;
+        return MacroStateManager.getSessionRunningTime() <= 0L;
     }
 
     public static int getLevel() {
@@ -244,11 +149,14 @@ public final class FarmingXpTracker {
     }
 
     public static long getXpPerHour() {
-        return (long) xpPerHour;
+        long sessionMs = MacroStateManager.getSessionRunningTime();
+        return sessionMs > 0
+                ? (long) (sessionXpGained * 3_600_000.0 / sessionMs)
+                : 0L;
     }
 
     public static long getSessionXpGained() {
-        return (long) sessionXpGained;
+        return sessionXpGained;
     }
 
     public static long getRemainingToMax() {
@@ -308,6 +216,11 @@ public final class FarmingXpTracker {
         synchronized (LOCK) {
             currentLevel = level;
             absoluteXp = XP_TO_LEVEL[level] + Math.max(0L, currentXpInLevel);
+            if (sessionStartAbsoluteXp < 0L) {
+                sessionStartAbsoluteXp = absoluteXp;
+            }
+            sessionXpGained = Math.max(sessionXpGained,
+                    Math.max(0L, absoluteXp - sessionStartAbsoluteXp));
         }
     }
 
