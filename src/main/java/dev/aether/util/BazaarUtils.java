@@ -187,7 +187,7 @@ public final class BazaarUtils {
                     () -> submitSignAmountIfOpen(client, count), 8_000L));
         }
 
-        long retryDelay = Math.max(500L, guiDelay);
+        long retryDelay = Math.max(2500L, guiDelay);
         if (!RetryingClickSequence.run(stages, fastDelay, retryDelay,
                 () -> MacroWorkerThread.getInstance().isCancelled(), MacroWorkerThread::sleep,
                 message -> ClientUtils.sendDebugMessage("[BazaarUtils] " + message))) {
