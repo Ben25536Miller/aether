@@ -99,6 +99,15 @@ public class RotationManager {
     }
 
     public static void rotateToYawPitch(Minecraft mc, float yaw, float pitch, long durationMs, boolean force) {
+        rotateToYawPitch(mc, yaw, pitch, durationMs, force, true);
+    }
+
+    public static void rotateToExactYawPitch(Minecraft mc, float yaw, float pitch, long durationMs) {
+        rotateToYawPitch(mc, yaw, pitch, durationMs, false, false);
+    }
+
+    private static void rotateToYawPitch(Minecraft mc, float yaw, float pitch, long durationMs,
+                                         boolean force, boolean quantize) {
         if (mc.player == null) return;
         if (isRotating && !force) return;
         if (FailsafeManager.shouldSuppressPestCleanerRotation(mc)) return;
@@ -107,7 +116,7 @@ public class RotationManager {
         rotationDuration = Math.max(100, Math.max(durationMs, computeDynamicDuration(startRot, targetRot)));
         rotationStartTime = System.currentTimeMillis();
         applyTrackingNoise = false;
-        rotationGcd = computeGcd(mc);
+        rotationGcd = quantize ? computeGcd(mc) : 0.0;
         hasLastApplied = false;
         maxDegreesPerSecond = 0.0f;
         trackingMode = false;
@@ -311,6 +320,9 @@ public class RotationManager {
     }
 
     private static float applyGcd(float rotation, float previousRotation, Float min, Float max) {
+        if (rotationGcd == 0.0) {
+            return rotation;
+        }
         double gcd = Double.isNaN(rotationGcd) ? computeGcd(Minecraft.getInstance()) : rotationGcd;
         double delta = Mth.wrapDegrees(rotation - previousRotation);
         double roundedDelta = Math.round(delta / gcd) * gcd;
