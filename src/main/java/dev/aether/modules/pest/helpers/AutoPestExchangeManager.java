@@ -222,9 +222,7 @@ public final class AutoPestExchangeManager {
         } finally {
             running = false;
             if (MacroStateManager.isMacroRunning() && canResumeFarming) {
-                if (!AetherConfig.AUTO_PEST_USE_ABIPHONE.get()) {
-                    SqueakyMousematManager.armReapplyAttempt();
-                }
+                SqueakyMousematManager.armReapplyAttempt();
                 client.execute(() -> FarmingMacroManager.enable(client,
                         FarmingMacroManager.createMacroFromConfig()));
                 MacroStateManager.setCurrentState(MacroState.State.FARMING);
