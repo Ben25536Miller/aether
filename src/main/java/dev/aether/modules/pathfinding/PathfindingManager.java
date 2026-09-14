@@ -1121,6 +1121,12 @@ public final class PathfindingManager {
                                     + ETHERWARP_REPATH_MAX_RETRIES + " replans. Cancelling.",
                             false);
                 }
+                navigating = false;
+                activeMode = NavigationMode.NONE;
+                clearTransientDebugRenderingIfActive();
+                if (etherwarpFailureCallback != null) {
+                    etherwarpFailureCallback.run();
+                }
                 return true;
             }
 
