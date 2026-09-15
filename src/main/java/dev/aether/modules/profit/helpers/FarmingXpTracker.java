@@ -1,17 +1,17 @@
 package dev.aether.modules.profit.helpers;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import dev.aether.macro.MacroStateManager;
 import dev.aether.modules.profit.ProfitManager;
 import dev.aether.util.NumberUtils;
 import dev.aether.util.TablistUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 // the tab-list skills widget and action bar fraction provide direct absolute XP anchors
 // at high levels the action bar degrades from (cur/max) to (percent), which alone cannot resolve an absolute xp value
