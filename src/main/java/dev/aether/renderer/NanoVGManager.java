@@ -204,7 +204,7 @@ public final class NanoVGManager {
 
         GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, savedFbo);
         GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, savedReadFbo);
-        GL11.glViewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
+        GlStateManager._viewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, savedTexture);
 
         GL33C.glBindSampler(0, savedSampler);
