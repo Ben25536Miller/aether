@@ -4,7 +4,6 @@ import dev.aether.bootstrap.AetherBootstrapHooks;
 import dev.aether.proxy.AetherProxyManager;
 import dev.aether.proxy.AetherProxyScreen;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ConnectScreen;
@@ -17,6 +16,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 // cancelling init means vanilla buttons/panorama never get set up, and setting the screen directly rather than via execute() avoids a one-frame TitleScreen flash
 @Mixin(TitleScreen.class)
@@ -24,7 +24,6 @@ public abstract class MixinTitleScreen extends Screen {
     private static final int AETHER_BUTTON_WIDTH = 200;
     private static final int AETHER_BUTTON_HEIGHT = 20;
     private static final int AETHER_BUTTON_GAP = 4;
-    private static final int MENU_BUTTON_SPACING = 24;
     private static final String HYPIXEL_ADDRESS = "mc.hypixel.net";
 
     protected MixinTitleScreen(Component title) {
@@ -53,8 +52,6 @@ public abstract class MixinTitleScreen extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void aether$addButtons(CallbackInfo ci) {
-        aether$addHypixelButton();
-
         int buttonX = this.width / 2 - AETHER_BUTTON_WIDTH / 2;
         int buttonY = aether$nextInjectedButtonY();
         this.addRenderableWidget(Button.builder(
@@ -64,7 +61,8 @@ public abstract class MixinTitleScreen extends Screen {
                 .build());
     }
 
-    private void aether$addHypixelButton() {
+    @Inject(method = "createNormalMenuOptions", at = @At("RETURN"), cancellable = true)
+    private void aether$addHypixelButton(int y, int spacing, CallbackInfoReturnable<Integer> cir) {
         Button multiplayerButton = null;
         for (var listener : this.children()) {
             if (listener instanceof Button button
@@ -77,15 +75,7 @@ public abstract class MixinTitleScreen extends Screen {
             return;
         }
 
-        int hypixelY = multiplayerButton.getY() + MENU_BUTTON_SPACING;
-        for (var listener : this.children()) {
-            if (listener instanceof AbstractWidget widget
-                    && widget.getY() >= hypixelY
-                    && widget.getY() < this.height - AETHER_BUTTON_HEIGHT) {
-                widget.setY(widget.getY() + MENU_BUTTON_SPACING);
-            }
-        }
-
+        int hypixelY = cir.getReturnValue() + spacing;
         Button hypixelButton = Button.builder(
                         Component.literal("Hypixel"),
                         button -> aether$connectToHypixel())
@@ -94,6 +84,7 @@ public abstract class MixinTitleScreen extends Screen {
                 .build();
         hypixelButton.active = multiplayerButton.active;
         this.addRenderableWidget(hypixelButton);
+        cir.setReturnValue(hypixelY);
     }
 
     private void aether$connectToHypixel() {
