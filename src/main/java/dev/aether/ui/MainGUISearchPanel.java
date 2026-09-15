@@ -177,7 +177,7 @@ final class MainGUISearchPanel {
                         addedForSubtab = true;
                     }
                 }
-                if (groupMatched && !addedForGroup && group.hasSettings()) {
+                if (groupMatched && !addedForGroup) {
                     out.add(new SearchResult(mainTab, sourceLabel, subtab, group, null));
                     addedForSubtab = true;
                 }
