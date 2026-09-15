@@ -19,10 +19,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 final class PestCombatCoordinator {
-    // A completed/aborted fly path used to leave the cleaner motionless for
-    // two full seconds before retrying. A short debounce releases keys without
-    // making the route visibly pause.
-    private static final long STUCK_PATH_RETRY_DELAY_MS = 300L;
     private static final long AOTV_POST_CLICK_GRACE_MS = 250L;
     private static final double AOTV_CONFIRM_DISTANCE = 2.0;
     private static final double AOTV_CONFIRM_DISTANCE_SQ = AOTV_CONFIRM_DISTANCE * AOTV_CONFIRM_DISTANCE;
@@ -93,8 +89,6 @@ final class PestCombatCoordinator {
         default void setStateEnteredAt(long value) { runtime().stateEnteredAt = value; }
         default int getStuckTicks() { return runtime().stuckTicks; }
         default void setStuckTicks(int value) { runtime().stuckTicks = value; }
-        default long getFlyRetryAfterUnflyAt() { return runtime().flyRetryAfterUnflyAt; }
-        default void setFlyRetryAfterUnflyAt(long value) { runtime().flyRetryAfterUnflyAt = value; }
         default int getApproachTicks() { return runtime().approachTicks; }
         default void setApproachTicks(int value) { runtime().approachTicks = value; }
         default int getTargetWithoutSkullTicks() { return runtime().targetWithoutSkullTicks; }
@@ -158,28 +152,22 @@ final class PestCombatCoordinator {
             return;
         }
 
-        if (!PathfindingManager.isNavigating()) {
-            long now = System.currentTimeMillis();
-            if (context.getFlyRetryAfterUnflyAt() > now) {
-                return;
+        switch (context.runtime().flightRecovery.update(PathfindingManager.isNavigating(),
+                client.player.position(), System.currentTimeMillis(), context.getStateEnteredAt(), stateTimeoutMs)) {
+            case GIVE_UP -> {
+                ClientUtils.sendDebugMessage("[PestDestroyer] Fly route exhausted recovery. Checking for next pest.");
+                PathfindingManager.stop();
+                context.deferTarget(currentTarget);
+                context.setState(PestDestroyer.State.CHECK_NEXT);
             }
-            // A failed or partial fly route used to sit idle for twenty ticks
-            // before it was even scheduled again. Retry immediately with only
-            // a short debounce to avoid hammering an unloaded world.
-            ClientUtils.sendDebugMessage("[PestDestroyer] Fly route ended before reaching pest. Repathing now.");
-            context.setStuckTicks(0);
-            context.setFlyRetryAfterUnflyAt(now + STUCK_PATH_RETRY_DELAY_MS);
-            context.startPathToPest(client, currentTarget);
-            return;
-        } else {
-            context.setStuckTicks(0);
-        }
-
-        if (System.currentTimeMillis() - context.getStateEnteredAt() > stateTimeoutMs) {
-            ClientUtils.sendDebugMessage("[PestDestroyer] Fly-to-pest timed out. Checking for next pest.");
-            PathfindingManager.stop();
-            context.deferTarget(currentTarget);
-            context.setState(PestDestroyer.State.CHECK_NEXT);
+            case RETRY -> {
+                ClientUtils.sendDebugMessage("[PestDestroyer] Fly route ended before reaching pest. Repathing.");
+                context.setStuckTicks(0);
+                context.startPathToPest(client, currentTarget);
+            }
+            case CONTINUE -> context.setStuckTicks(0);
+            case WAIT -> {
+            }
         }
     }
 

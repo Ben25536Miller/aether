@@ -16,6 +16,7 @@ import java.util.function.Function;
 
 public final class FlightCollisionChecker {
     private static final AABB BODY = new AABB(-0.35, 0, -0.35, 0.35, 1.8, 0.35);
+    private static final int START_SEARCH_RADIUS = 3;
 
     // a cell is only as good as the room around it: creative flight moves in 0.15 steps, so a route
     // that leans on the last few centimetres of head clearance cannot actually be flown
@@ -81,6 +82,34 @@ public final class FlightCollisionChecker {
     public boolean isClear(PathPosition from, PathPosition to) {
         Vec3 start = waypoint(from);
         return FlightPathClearance.isClear(BODY.move(start), waypoint(to).subtract(start), collisions);
+    }
+
+    public PathPosition findStart(Vec3 feet, AABB bounds) {
+        PathPosition origin = new PathPosition(feet.x, feet.y, feet.z).floor();
+        PathPosition best = canReachStart(feet, bounds, origin) ? origin : null;
+        double bestDistance = best == null ? Double.POSITIVE_INFINITY : feet.distanceToSqr(waypoint(best));
+        for (int x = -START_SEARCH_RADIUS; x <= START_SEARCH_RADIUS; x++) {
+            for (int y = -START_SEARCH_RADIUS; y <= START_SEARCH_RADIUS; y++) {
+                for (int z = -START_SEARCH_RADIUS; z <= START_SEARCH_RADIUS; z++) {
+                    PathPosition candidate = origin.add(x, y, z);
+                    Vec3 target = waypoint(candidate);
+                    double distance = feet.distanceToSqr(target);
+                    if (distance >= bestDistance || !canReachStart(feet, bounds, candidate)) continue;
+                    best = candidate;
+                    bestDistance = distance;
+                }
+            }
+        }
+        return best;
+    }
+
+    private boolean canReachStart(Vec3 feet, AABB bounds, PathPosition candidate) {
+        if (!hasClearance(candidate)) return false;
+        Vec3 target = waypoint(candidate);
+        return FlightPathClearance.isClear(bounds, target.subtract(feet), collisions)
+                || FlightPathClearance.clearCorner(feet, target, (from, to) ->
+                FlightPathClearance.isClear(bounds.move(from.subtract(feet)),
+                        to.subtract(from), collisions)) != null;
     }
 
     // graded room around a cell, zero when nothing is close on any side

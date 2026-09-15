@@ -2,6 +2,7 @@ package dev.aether.modules.pathfinding.harness;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -31,6 +32,25 @@ class FlyNavigationHarnessTest {
         scenarios.add(new Scenario("field wall", Structures.fieldWall(),
                 new Vec3(0.5, 67.15, 0.5), 0.0f, new BlockPos(0, 67, 20), 800));
         return scenarios;
+    }
+
+    @Test
+    void escapesSlabAndStairOverhangsFromActualPlayerHeight() {
+        for (boolean stair : new boolean[]{false, true}) {
+            BlockWorld world = new BlockWorld().ground(63)
+                    .shape(new AABB(-2, 64, -2, 3, 64.5, 3))
+                    .shape(new AABB(-2, 66.5, -2, 3, 67, 3));
+            if (stair) world.shape(new AABB(-2, 66, 1, 3, 66.5, 3));
+            for (float yaw : new float[]{0, 90, 180, -90}) {
+                FlightTrial.Result result = FlightTrial.run(stair ? "stair eave" : "slab eave", world,
+                        new Vec3(0.5, 64.7, 0.5), new BlockPos(0, 68, 8), yaw, 400);
+                System.out.println(result);
+                assertTrue(result.reached(), result::toString);
+                assertEquals(0, result.repaths(), result::toString);
+                assertEquals(0, result.blockedTicks(), result::toString);
+                assertTrue(result.verticalFlips() <= 8, result::toString);
+            }
+        }
     }
 
     @Test

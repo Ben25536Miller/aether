@@ -14,6 +14,28 @@ class FlightPathClearanceTest {
     private static final Vec3 HOP = new Vec3(0, 0, 12);
 
     @Test
+    void exitsUnderASlabBeforeClimbingAndRejectsABlockedExit() {
+        Vec3 goal = new Vec3(0, 3, 5);
+        AABB roof = new AABB(-2, 1.8, -2, 2, 2.3, 2);
+        assertEquals(new Vec3(0, 0, 5), FlightPathClearance.clearCorner(Vec3.ZERO, goal,
+                (from, to) -> FlightPathClearance.isClear(PLAYER.move(from), to.subtract(from),
+                        search -> List.of(roof))));
+        AABB wall = new AABB(-2, 0, 2, 2, 5, 3);
+        assertNull(FlightPathClearance.clearCorner(Vec3.ZERO, goal,
+                (from, to) -> FlightPathClearance.isClear(PLAYER.move(from), to.subtract(from),
+                        search -> List.of(roof, wall))));
+    }
+
+    @Test
+    void descendsBeforeCrossingUnderALowerStairLip() {
+        Vec3 goal = new Vec3(0, -0.5, 5);
+        AABB lip = new AABB(-2, 1.4, 1, 2, 2.4, 2);
+        assertEquals(new Vec3(0, -0.5, 0), FlightPathClearance.clearCorner(Vec3.ZERO, goal,
+                (from, to) -> FlightPathClearance.isClear(PLAYER.move(from), to.subtract(from),
+                        search -> List.of(lip))));
+    }
+
+    @Test
     void rejectsAWallEvenWhenTheHopDestinationIsOpen() {
         assertFalse(clear(HOP, new AABB(-2, -2, 5, 2, 5, 6)));
         assertTrue(clear(HOP, new AABB(-2, -2, 13, 2, 5, 14)));

@@ -39,6 +39,9 @@ public final class FlightGuidance {
         NONE, BRAKE, ARRIVE, CORNER, CRUISE, REJOIN
     }
 
+    private record Steering(FlightMotion.Input horizontal, int vertical) {
+    }
+
     public record Command(Status status, Mode mode, FlightMotion.Input horizontal, int vertical, boolean sprint,
                           Rotation aim, String note) {
         static Command hold() {
@@ -241,7 +244,6 @@ public final class FlightGuidance {
         }
 
         int vertical = verticalInput(view, pos, dyWp, rejoin != null ? LEVEL_OFF_TOLERANCE : CRUISE_HEIGHT_TOLERANCE);
-        horizontal = constrain(view, horizontal, sprint);
 
         long stuckMs = progressTracker.stalledFor(wpIndex, pos.distanceTo(waypointTarget), view.nowMillis());
         if (stuckMs > STUCK_ABORT_MS) {
@@ -251,8 +253,9 @@ public final class FlightGuidance {
         if (stuckMs > STUCK_CLIMB_MS && dyWp > pos.y && isClear(view, pos, pos.add(0, 1, 0))) {
             vertical = 1;
         }
+        Steering steering = constrain(view, horizontal, sprint, vertical);
 
-        return new Command(Status.STEER, mode, horizontal, vertical, sprint, aim, null);
+        return new Command(Status.STEER, mode, steering.horizontal(), steering.vertical(), sprint, aim, null);
     }
 
     private Command beginDecelerate(FlightView view) {
@@ -284,14 +287,15 @@ public final class FlightGuidance {
                 ? arrivalInput(view, goal, goalStopThreshold)
                 : FlightMotion.brakingInput(velocity, view.yaw());
         int vertical = verticalInput(view, pos, goal.y, 0.75);
-        horizontal = constrain(view, horizontal, false);
+        Steering steering = constrain(view, horizontal, false, vertical);
 
         if (!arrived && view.nowMillis() - decelStartTime > DECELERATE_TIMEOUT_MS) {
             // a coast prediction is not arrival; retry the endpoint if momentum left us short or wide
             wpIndex = Math.max(0, path.size() - 1);
             state = State.FLYING;
         }
-        return new Command(Status.STEER, coastable ? Mode.ARRIVE : Mode.BRAKE, horizontal, vertical, false, null, null);
+        return new Command(Status.STEER, coastable ? Mode.ARRIVE : Mode.BRAKE,
+                steering.horizontal(), steering.vertical(), false, null, null);
     }
 
     private Rotation aim(FlightView view, double dx, double dz, double distToGoal) {
@@ -355,7 +359,8 @@ public final class FlightGuidance {
         }
 
         Vec3 levelled = new Vec3(pos.x, from.y + (to.y - from.y) * foot, pos.z);
-        return isClear(view, pos, levelled) && isClear(view, levelled, to) ? levelled : null;
+        if (isClear(view, pos, levelled) && isClear(view, levelled, to)) return levelled;
+        return FlightPathClearance.clearCorner(pos, to, (a, b) -> isClear(view, a, b));
     }
 
     private FlightMotion.Input arrivalInput(FlightView view, Vec3 target, double tolerance) {
@@ -368,10 +373,16 @@ public final class FlightGuidance {
         return FlightMotion.horizontalInput(desired, view.velocity(), view.yaw());
     }
 
-    private FlightMotion.Input constrain(FlightView view, FlightMotion.Input requested, boolean sprint) {
+    private Steering constrain(FlightView view, FlightMotion.Input requested, boolean sprint, int vertical) {
         double acceleration = view.flyingSpeed() * (view.sprinting() || sprint ? 2.0 : 1.0);
-        return FlightMotion.avoidObstacles(requested, view.velocity(), view.yaw(), acceleration,
+        Vec3 velocityAfterLift = view.velocity().add(0, vertical * view.flyingSpeed() * 3.0, 0);
+        FlightMotion.Input horizontal = FlightMotion.avoidObstacles(requested, velocityAfterLift, view.yaw(), acceleration,
                 velocity -> canCoast(view, velocity));
+        if (vertical != 0 && !horizontal.equals(requested)
+                && canCoast(view, view.velocity().add(FlightMotion.acceleration(requested, view.yaw(), acceleration)))) {
+            return new Steering(requested, 0);
+        }
+        return new Steering(horizontal, vertical);
     }
 
     private int verticalInput(FlightView view, Vec3 pos, double waypointY, double tolerance) {

@@ -12,10 +12,16 @@ import java.util.Set;
 // a bare voxel grid that can answer the same collision queries a Level does
 public final class BlockWorld {
     private final Set<Long> solid = new HashSet<>();
+    private final List<AABB> shapes = new ArrayList<>();
     private int bedrockY = Integer.MIN_VALUE;
 
     public BlockWorld ground(int y) {
         bedrockY = y;
+        return this;
+    }
+
+    public BlockWorld shape(AABB shape) {
+        shapes.add(shape);
         return this;
     }
 
@@ -64,6 +70,9 @@ public final class BlockWorld {
 
     public List<AABB> collisions(AABB search) {
         List<AABB> result = new ArrayList<>();
+        for (AABB shape : shapes) {
+            if (shape.intersects(search)) result.add(shape);
+        }
         int minX = Mth.floor(search.minX) - 1, maxX = Mth.floor(search.maxX) + 1;
         int minY = Mth.floor(search.minY) - 1, maxY = Mth.floor(search.maxY) + 1;
         int minZ = Mth.floor(search.minZ) - 1, maxZ = Mth.floor(search.maxZ) + 1;
