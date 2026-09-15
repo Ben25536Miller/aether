@@ -20,6 +20,8 @@ final class PestNavigationCoordinator {
         default double getVacuumRange() { return runtime().vacuumRange; }
         default int getStuckTicks() { return runtime().stuckTicks; }
         default void setStuckTicks(int value) { runtime().stuckTicks = value; }
+        default int getFlyTapTicks() { return runtime().flyTapTicks; }
+        default void setFlyTapTicks(int value) { runtime().flyTapTicks = value; }
         int findVacuumHotbarSlot(Minecraft client);
         void setState(PestDestroyer.State state);
         Entity findClosestPest(Minecraft client);
@@ -99,27 +101,21 @@ final class PestNavigationCoordinator {
             int maxPlotSweeps,
             int maxScanWaypoints
     ) {
-        long elapsed = System.currentTimeMillis() - context.getStateEnteredAt();
 
         if (!client.player.getAbilities().flying && client.player.getAbilities().mayfly) {
-            long flyElapsed = elapsed % 250;
-            if (flyElapsed < 50) {
-                ClientUtils.setKeyMappingState(client.options.keyJump, true);
-            } else if (flyElapsed < 100) {
-                ClientUtils.setKeyMappingState(client.options.keyJump, false);
-            } else if (flyElapsed < 150) {
-                ClientUtils.setKeyMappingState(client.options.keyJump, true);
+            if (context.getFlyTapTicks() < PestFlightTapper.TIMEOUT_TICKS) {
+                PestFlightTapper.tick(client, context.getFlyTapTicks());
+                context.setFlyTapTicks(context.getFlyTapTicks() + 1);
             } else {
-                ClientUtils.setKeyMappingState(client.options.keyJump, false);
-            }
-            if (elapsed > 3000) {
-                ClientUtils.setKeyMappingState(client.options.keyJump, false);
-            }
-            if (client.player.getAbilities().flying) {
-                ClientUtils.setKeyMappingState(client.options.keyJump, false);
-                context.setStateEnteredAt(System.currentTimeMillis());
+                PestFlightTapper.release(client);
             }
             return;
+        }
+
+        if (context.getFlyTapTicks() != 0) {
+            PestFlightTapper.release(client);
+            context.setFlyTapTicks(0);
+            context.setStateEnteredAt(System.currentTimeMillis());
         }
 
         ClientUtils.setKeyMappingState(client.options.keyAttack, false);
