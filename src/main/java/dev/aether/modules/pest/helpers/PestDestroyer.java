@@ -560,6 +560,15 @@ public class PestDestroyer {
         return PestLeaveOneController.filterSkippedPlots(runtime, infested);
     }
 
+    /**
+     * True when the alive count is fully explained by the one pest we deliberately
+     * left on each remembered plot, i.e. there is nothing new worth cleaning.
+     */
+    public static boolean isLeaveOneSatisfied(int aliveCount) {
+        return PestLeaveOneController.shouldFinishForCounts(
+                aliveCount, PestLeaveOneController.rememberedPlotCount(runtime));
+    }
+
     public static void onPestsSpawnedInPlot(String plot) {
         PestLeaveOneController.forgetPlot(runtime, plot);
     }

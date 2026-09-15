@@ -162,6 +162,14 @@ public final class PestLifecycleManager {
         stage = Stage.IDLE;
     }
 
+    /** Companion to PestManager's trigger-claim watchdog: a PRE stage whose worker never reported back. */
+    public static void releaseStuckPreStage() {
+        if (stage == Stage.PRE) {
+            ClientUtils.sendDebugMessage("Pest lifecycle: releasing stuck PRE stage.");
+            stage = Stage.IDLE;
+        }
+    }
+
     private static void startCleaningStage(
             Minecraft client,
             String plot,
