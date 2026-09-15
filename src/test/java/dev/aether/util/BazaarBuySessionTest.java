@@ -61,6 +61,35 @@ class BazaarBuySessionTest {
     }
 
     @Test
+    void reportsHypixelsRefusalInsteadOfWaitingForABuyPromptThatNeverComes() {
+        var refusedLore = List.of(
+                "\u00A78Enchanted Sugar", "", "\u00A77Amount: \u00A7a388x", "",
+                "\u00A77Per unit: \u00A76692.6 coins", "\u00A77Price: \u00A76279,478 coins", "",
+                "\u00A7cNot enough inventory space!",
+                "\u00A77NPC Sell Price: \u00A7b640.0 Coins",
+                "\u00A76Bazaar Buy Price: \u00A7b696.2 Coins",
+                "\u00A76Bazaar Sell Price: \u00A7b636.4 Coins");
+        var buy = new BazaarBuySession("Enchanted Sugar", 388);
+        assertNull(buy.blocker());
+        assertEquals(-1, buy.confirmationSlot(7, "Confirm Instant Buy",
+                List.of(new BazaarBuySession.MenuItem(13, "\u00A7aCustom Amount", false, refusedLore)), 0, 0));
+        assertEquals("Not enough inventory space!", buy.blocker());
+    }
+
+    @Test
+    void clearsTheRefusalOnceThePurchaseBecomesBuyable() {
+        var buy = new BazaarBuySession("Enchanted Cocoa Beans", 435);
+        var refused = List.of("Enchanted Cocoa Beans", "Amount: 435x", "Not enough coins!");
+        var ready = List.of("Enchanted Cocoa Beans", "Amount: 435x", "Click to buy now!");
+        assertEquals(-1, buy.confirmationSlot(7, "Confirm Instant Buy",
+                List.of(new BazaarBuySession.MenuItem(13, "Custom Amount", false, refused)), 0, 0));
+        assertEquals("Not enough coins!", buy.blocker());
+        assertEquals(13, buy.confirmationSlot(7, "Confirm Instant Buy",
+                List.of(new BazaarBuySession.MenuItem(13, "Custom Amount", false, ready)), 0, 0));
+        assertNull(buy.blocker());
+    }
+
+    @Test
     void customAmountRequiresTheConfirmationScreenAndSlot() {
         var buy = new BazaarBuySession("Enchanted Cocoa Beans", 435);
         var item = new BazaarBuySession.MenuItem(13, "Custom Amount", false, COCOA_CONFIRMATION_LORE);

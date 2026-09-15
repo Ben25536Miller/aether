@@ -31,6 +31,28 @@ class RetryingClickSequenceTest {
     }
 
     @Test
+    void abortsAsSoonAsTheStageIsRefusedInsteadOfWaitingOutTheTimeout() {
+        // a bazaar refusal (no coins, no inventory space) never becomes a confirmation, so
+        // BazaarUtils feeds purchase.blocker() into the cancel supplier to stop retrying
+        AtomicLong now = new AtomicLong();
+        AtomicInteger attempts = new AtomicInteger();
+        var refusedAfter = 150L;
+        var stage = new RetryingClickSequence.Stage("purchase confirmation",
+                () -> false,
+                () -> {
+                    attempts.incrementAndGet();
+                    return true;
+                }, 30_000L);
+
+        boolean completed = RetryingClickSequence.run(List.of(stage), 0L, 100L,
+                () -> now.get() >= refusedAfter, now::get, now::addAndGet, message -> { });
+
+        assertFalse(completed);
+        assertTrue(now.get() < 1_000L, "aborted at " + now.get() + "ms, should not wait out the 30s timeout");
+        assertTrue(attempts.get() <= 2, "kept clicking a refused stage: " + attempts.get() + " attempts");
+    }
+
+    @Test
     void timesOutWhenNoClickCanBeDispatched() {
         AtomicLong now = new AtomicLong();
         var stage = new RetryingClickSequence.Stage("missing stage", () -> false, () -> false, 200L);

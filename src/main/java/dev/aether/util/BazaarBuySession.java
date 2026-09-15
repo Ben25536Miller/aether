@@ -22,6 +22,11 @@ final class BazaarBuySession {
     private long retryAt;
     private int alertMenu = -1;
     private String alertTitle = "";
+    private volatile String blocker;
+
+    String item() {
+        return item;
+    }
 
     record MenuItem(int slot, String name, boolean barrier, List<String> lore) {
         MenuItem(int slot, String name, boolean barrier) {
@@ -43,6 +48,9 @@ final class BazaarBuySession {
     }
 
     boolean completed() { return completed; }
+
+    // hypixel's own reason the confirm button is not buyable, or null while it is
+    String blocker() { return blocker; }
 
     int confirmationSlot(int menu, String title, List<MenuItem> items, long now, long delay) {
         String plainTitle = normalize(title);
@@ -87,6 +95,7 @@ final class BazaarBuySession {
         boolean matchingItem = false;
         boolean matchingAmount = false;
         boolean readyToBuy = false;
+        String refusal = null;
         for (String line : entry.lore()) {
             String plain = normalize(line);
             if (plain.equals(item)) matchingItem = true;
@@ -94,9 +103,28 @@ final class BazaarBuySession {
             if (amount.matches() && amount.group(1).replace(",", "").equals(Integer.toString(count))) {
                 matchingAmount = true;
             }
-            if (plain.equals("click to buy now!")) readyToBuy = true;
+            if (plain.equals("click to buy now!")) {
+                readyToBuy = true;
+            } else if (refusal == null && !isPriceLine(plain)) {
+                refusal = TablistUtils.stripColors(line).trim();
+            }
         }
+        // The right purchase with the buy prompt swapped for something else is Hypixel
+        // refusing it -- no inventory space, no coins. Waiting that out never resolves.
+        blocker = matchingItem && matchingAmount && !readyToBuy ? refusal : null;
         return matchingItem && matchingAmount && readyToBuy;
+    }
+
+    // the informational lines every custom amount button carries
+    private boolean isPriceLine(String plain) {
+        return plain.isEmpty()
+                || plain.equals(item)
+                || plain.startsWith("amount:")
+                || plain.startsWith("per unit:")
+                || plain.startsWith("price:")
+                || plain.startsWith("npc sell price:")
+                || plain.startsWith("bazaar buy price:")
+                || plain.startsWith("bazaar sell price:");
     }
 
     boolean shouldConfirm(int menu, int slot, boolean blocked, long now, long delay) {
