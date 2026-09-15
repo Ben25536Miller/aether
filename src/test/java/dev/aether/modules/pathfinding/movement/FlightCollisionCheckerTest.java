@@ -6,6 +6,7 @@ import dev.aether.modules.pathfinding.pathing.configuration.PathfinderConfigurat
 import dev.aether.modules.pathfinding.pathing.processing.impl.FlyPathProcessor;
 import dev.aether.modules.pathfinding.wrapper.PathPosition;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -14,6 +15,41 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FlightCollisionCheckerTest {
+    private static final AABB BODY = new AABB(-0.3, 0, -0.3, 0.3, 1.8, 0.3);
+
+    @Test
+    void findsAnExitBesideASlabWhenRoundingUpWouldHitTheRoof() {
+        var checker = checker(List.of(new AABB(-2, 0, -2, 3, 0.5, 3),
+                new AABB(-2, 2.5, -2, 3, 3, 3)));
+        Vec3 feet = new Vec3(0.5, 0.7, 0.5);
+        assertFalse(checker.hasClearance(pos(0, 0, 0)));
+        assertFalse(checker.hasClearance(pos(0, 1, 0)));
+
+        PathPosition start = checker.findStart(feet, BODY.move(feet));
+
+        assertNotNull(start);
+        assertTrue(checker.hasClearance(start));
+        assertTrue(Math.abs(start.flooredX()) >= 3 || Math.abs(start.flooredZ()) >= 3);
+    }
+
+    @Test
+    void doesNotSelectAnOpenStartAcrossAnEnclosingWall() {
+        var checker = checker(List.of(new AABB(-1, -1, -1, 2, 0.5, 2),
+                new AABB(-1, 2.5, -1, 2, 4, 2),
+                new AABB(-1, 0, -1, 0, 3, 2), new AABB(1, 0, -1, 2, 3, 2),
+                new AABB(0, 0, -1, 1, 3, 0), new AABB(0, 0, 1, 1, 3, 2)));
+        Vec3 feet = new Vec3(0.5, 0.7, 0.5);
+        assertNull(checker.findStart(feet, BODY.move(feet)));
+    }
+
+    @Test
+    void retainsNormalOpenStartsIncludingNegativeCoordinates() {
+        var checker = checker(List.of());
+        for (Vec3 feet : List.of(new Vec3(0.5, 0.15, 0.5), new Vec3(-2.1, -0.8, -3.9))) {
+            assertEquals(new PathPosition(feet.x, feet.y, feet.z), checker.findStart(feet, BODY.move(feet)));
+        }
+    }
+
     @Test
     void detectsFenceTopsExtendingOutOfTheBlockBelowTheFeet() {
         var checker = checker(List.of(new AABB(0.375, -1, 0.375, 0.625, 0.5, 0.625)));
