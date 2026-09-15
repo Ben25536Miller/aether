@@ -197,6 +197,19 @@ class NanoVGManagerTest {
     }
 
     @Test
+    void keepsMinecraftViewportCacheInSync() {
+        GlStateManager._viewport(0, 0, 64, 64);
+        GL11.glViewport(3, 4, 48, 52);
+
+        renderOverlay();
+        GlStateManager._viewport(0, 0, 64, 64);
+
+        int[] viewport = new int[4];
+        GL11.glGetIntegerv(GL11.GL_VIEWPORT, viewport);
+        assertArrayEquals(new int[]{0, 0, 64, 64}, viewport);
+    }
+
+    @Test
     void keepsMinecraftCacheInSyncAfterRippleComposite() {
         var ripple = new RippleEffect();
         try {
