@@ -70,7 +70,8 @@ public class LoadoutManager {
                     return;
                 }
                 if (AutoPestExchangeManager.shouldBlockFarmingResume()) {
-                ClientUtils.sendDebugMessage("Loadout resume deferred because pest exchange has priority.");
+                    ClientUtils.sendDebugMessage("Loadout resume deferred because pest exchange has priority.");
+                    AutoPestExchangeManager.tryTriggerPending(client);
                     return;
                 }
                 client.execute(() -> GearManager.swapToFarmingTool(client));
@@ -79,7 +80,8 @@ public class LoadoutManager {
                     return;
                 }
                 if (AutoPestExchangeManager.shouldBlockFarmingResume()) {
-                ClientUtils.sendDebugMessage("Loadout resume deferred because pest exchange has priority.");
+                    ClientUtils.sendDebugMessage("Loadout resume deferred because pest exchange has priority.");
+                    AutoPestExchangeManager.tryTriggerPending(client);
                     return;
                 }
                 ClientUtils.sendDebugMessage("Restarting farming macro after loadout swap");
@@ -132,7 +134,6 @@ public class LoadoutManager {
         ClientUtils.sendCommand("/loadout");
     }
 
-    /** Cancels an in-flight loadout operation after auto loadout is disabled. */
     public static void cancelIfDisabled(Minecraft client) {
         if (AetherConfig.AUTO_LOADOUT_ENABLED.get() || !isSwappingLoadout) {
             return;
@@ -272,10 +273,6 @@ public class LoadoutManager {
 
         shouldRestartFarmingAfterSwap = false;
 
-        if (MacroStateManager.getCurrentState() == MacroState.State.WARDROBE) {
-            MacroStateManager.setCurrentState(MacroState.State.FARMING);
-        }
-
         if (PestManager.isCleaningInProgress()) {
             ClientUtils.sendMessage("\u00A7aLoadout swap finished. Cleaning in progress, skipping restart.", true);
             return;
@@ -283,7 +280,12 @@ public class LoadoutManager {
 
         if (AutoPestExchangeManager.shouldBlockFarmingResume()) {
             ClientUtils.sendDebugMessage("Loadout completion deferred because pest exchange has priority.");
+            AutoPestExchangeManager.tryTriggerPending(client);
             return;
+        }
+
+        if (MacroStateManager.getCurrentState() == MacroState.State.WARDROBE) {
+            MacroStateManager.setCurrentState(MacroState.State.FARMING);
         }
 
         ClientUtils.sendMessage("\u00A7aLoadout swap finished. Restarting farming...", true);

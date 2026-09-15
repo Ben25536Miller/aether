@@ -19,7 +19,7 @@ public class MixinMouseHandler {
         }
     }
 
-    /** Block vanilla from re-grabbing the cursor while the macro has released it. */
+    // stops vanilla re-grabbing the cursor while the macro has released it
     @Inject(method = "grabMouse", at = @At("HEAD"), cancellable = true)
     private void onGrabMouse(CallbackInfo ci) {
         if (AetherBootstrapHooks.isMouseUngrabbed()) {
@@ -60,6 +60,7 @@ public class MixinMouseHandler {
         AetherBootstrapHooks.onUserInput();
         if (AetherBootstrapHooks.isMouseUngrabbed()) {
             ci.cancel();
+            return;
         }
     }
 

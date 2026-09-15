@@ -24,7 +24,7 @@
 
 ## features
 - **farming qol** - auto farming, pest destroyer, auto pest exchange, auto spray, auto loadouts, auto greenhouse, auto composter ... + many more!
-- **visual** - nick hider, purse spoofer, sawdust spoofer
+- **visual** - nick hider, purse spoofer, sawdust spoofer, fun visual features
 - **failsafes** - too many failsafes to list
 
 ---
@@ -49,10 +49,10 @@ To contribute to language packs, see the [`translations/`](translations/) direct
 
 | Locale | Covered | Percentage |
 | --- | ---: | ---: |
-| `jp_jp` | 303/670 | 45.2% |
-| `pr_us` | 253/670 | 37.8% |
-| `pt_pt` | 477/670 | 71.2% |
-| `ru_ru` | 492/670 | 73.4% |
-| `test` | 516/670 | 77.0% |
-| `zh_cn` | 508/670 | 75.8% |
+| `jp_jp` | 303/768 | 39.5% |
+| `pr_us` | 253/768 | 32.9% |
+| `pt_pt` | 477/768 | 62.1% |
+| `ru_ru` | 492/768 | 64.1% |
+| `test` | 516/768 | 67.2% |
+| `zh_cn` | 508/768 | 66.1% |
 <!-- translation-coverage:end -->

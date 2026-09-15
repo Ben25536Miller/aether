@@ -13,10 +13,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-/**
- * Theme system for the UI library.
- * Core colors are mutable so users can customize them.
- */
+// core colors are mutable so users can customize them
 public class Theme {
 
     // ============================================================
@@ -38,15 +35,12 @@ public class Theme {
     public static int BG_ACTIVE     = 0xFF414B58;
     public static int BG_FIELD      = 0xFF323A45;
 
-    /** Main panel background. */
     public static int PANEL_BG      = 0xFF20262D;
-    /** Sidebar background. */
     public static int SIDEBAR_BG    = 0xFF171C23;
-    /** Setting-row and module-card background. */
+    // setting rows and module cards
     public static int CARD_BG       = 0xFF2B333D;
-    /** Element background - slider value box, dropdown button, action button. */
+    // slider value box, dropdown button, action button
     public static int ELEMENT_BG    = 0xFF36404B;
-    /** Separator / divider line color. */
     public static int SEPARATOR     = 0xFF4A5563;
 
     // ============================================================
@@ -87,13 +81,12 @@ public class Theme {
     public static final int TEXT_DISABLED  = 0xFF4B5563;
     public static final int TEXT_ACCENT    = 0xFF6366F1;
 
-    /** Muted / inactive text - unselected tabs, descriptions, dim labels. */
+    // unselected tabs, descriptions, dim labels
     public static int TEXT_MUTED     = 0xFF9AA6B2;
-    /** Setting-row label text. */
     public static int TEXT_LABEL     = 0xFFF0F3F6;
-    /** Secondary value text - slider value, dropdown value, action button default. */
+    // slider value, dropdown value, action button default
     public static int TEXT_VALUE     = 0xFFD2D9E1;
-    /** Enabled group label color in flat (Colors/Settings) view. */
+    // enabled group label in the flat colors/settings view
     public static int GROUP_ACTIVE   = 0xFFB8C4D1;
 
     // ============================================================
@@ -101,13 +94,10 @@ public class Theme {
     // ============================================================
 
     // Toggle pill
-    /** Off-state track background for toggle pill. */
     public static int PILL_TRACK     = 0xFF46515E;
-    /** Off-state knob color for toggle pill. */
     public static int PILL_KNOB_OFF  = 0xFFB4BEC9;
 
     // Slider
-    /** Left/start color of slider gradient fill. */
     public static int SLIDER_LEFT    = 0xFF4FA3D1;
 
     // Dropdown
@@ -158,6 +148,9 @@ public class Theme {
     public static int HUD_ACCENT = 0xFF70B7D9;
     public static int HUD_SEP    = 0xFF5D7182;
     public static int HUD_BAR_BG = 0xFF2F3A45;
+    public static int HUD_SUCCESS = 0xFF8AD9A5;
+    public static int HUD_WARNING = 0xFFE8BF78;
+    public static int HUD_ERROR = 0xFFED8A93;
 
     // ============================================================
     // ANIMATION SPEED / SPACING
@@ -165,23 +158,20 @@ public class Theme {
 
     public static final float ANIM_TIME_MIN_MS = 50f;
     public static final float ANIM_TIME_MAX_MS = 1000f;
-    /** Target animation time for GUI components in milliseconds. */
     public static float ANIM_TIME_MS = 250f;
 
     public static final float UI_SCALE_MIN = 0.5f;
     public static final float UI_SCALE_MAX = 3.0f;
-    /** Global scale of the /aether GUI panel (1.0 = pixel-perfect). Mirrored into MainGUI.uiScale at load. */
+    // 1.0 is pixel-perfect; mirrored into MainGUI.uiScale at load
     public static float UI_SCALE = 1.5f;
 
     public static final float TEXT_SCALE_MIN = 0.75f;
     public static final float TEXT_SCALE_MAX = 2.0f;
-    /** Independent text multiplier applied inside the /aether GUI. */
     public static float TEXT_SCALE = 1.0f;
 
-    /** Extra vertical spacing between settings within a module card (px). */
     public static int SETTING_SPACING = 4;
 
-    /** Set of ThemeEntry labels that cycle through rainbow colors each frame. */
+    // ThemeEntry labels that cycle through rainbow colors each frame
     public static final Set<String> rainbowEntries = new HashSet<>();
     private static float rainbowHue = 0f;
 
@@ -259,7 +249,10 @@ public class Theme {
         entry("HUD Value",      () -> HUD_VALUE,   v -> HUD_VALUE   = v),
         entry("HUD Accent",     () -> HUD_ACCENT,  v -> HUD_ACCENT  = v),
         entry("HUD Separator",  () -> HUD_SEP,     v -> HUD_SEP     = v),
-        entry("HUD Bar BG",     () -> HUD_BAR_BG,  v -> HUD_BAR_BG  = v)
+        entry("HUD Bar BG",     () -> HUD_BAR_BG,  v -> HUD_BAR_BG  = v),
+        entry("HUD Success",    () -> HUD_SUCCESS, v -> HUD_SUCCESS = v),
+        entry("HUD Warning",    () -> HUD_WARNING, v -> HUD_WARNING = v),
+        entry("HUD Error",      () -> HUD_ERROR,   v -> HUD_ERROR   = v)
     );
 
     private static final int[] DEFAULT_MENU_COLORS = ENTRIES.stream()
@@ -341,14 +334,13 @@ public class Theme {
         }
         obj.addProperty("animSpeed", ANIM_TIME_MS);
         obj.addProperty("settingSpacing", SETTING_SPACING);
-        obj.addProperty("uiScale", UI_SCALE);
-        obj.addProperty("textScale", TEXT_SCALE);
         JsonArray rainbowArr2 = new JsonArray();
         for (String s : rainbowEntries) rainbowArr2.add(s);
         obj.add("rainbowEntries", rainbowArr2);
         return GSON.toJson(obj);
     }
 
+    // Scale is a display preference, not theme content; only loadTheme() restores it.
     public static void importJson(String json) {
         try {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
@@ -366,8 +358,6 @@ public class Theme {
             }
             if (obj.has("animSpeed"))     ANIM_TIME_MS    = parseAnimationTime(obj.get("animSpeed").getAsFloat());
             if (obj.has("settingSpacing")) SETTING_SPACING = obj.get("settingSpacing").getAsInt();
-            if (obj.has("uiScale"))       UI_SCALE        = Math.max(UI_SCALE_MIN, Math.min(UI_SCALE_MAX, obj.get("uiScale").getAsFloat()));
-            if (obj.has("textScale"))     TEXT_SCALE      = Math.max(TEXT_SCALE_MIN, Math.min(TEXT_SCALE_MAX, obj.get("textScale").getAsFloat()));
             rainbowEntries.clear();
             if (obj.has("rainbowEntries")) {
                 obj.get("rainbowEntries").getAsJsonArray()
@@ -380,18 +370,21 @@ public class Theme {
         }
     }
 
-    /** Restores every user-editable theme value to the built-in defaults. */
     public static void resetToDefaults() {
+        resetColorsToDefaults();
+        ANIM_TIME_MS = 250f;
+        SETTING_SPACING = 4;
+        UI_SCALE = 1.5f;
+        TEXT_SCALE = 1.0f;
+    }
+
+    public static void resetColorsToDefaults() {
         for (int i = 0; i < ENTRIES.size(); i++) {
             ENTRIES.get(i).setter.accept(DEFAULT_MENU_COLORS[i]);
         }
         for (int i = 0; i < HUD_ENTRIES.size(); i++) {
             HUD_ENTRIES.get(i).setter.accept(DEFAULT_HUD_COLORS[i]);
         }
-        ANIM_TIME_MS = 250f;
-        SETTING_SPACING = 4;
-        UI_SCALE = 1.5f;
-        TEXT_SCALE = 1.0f;
         rainbowEntries.clear();
     }
 
@@ -489,7 +482,7 @@ public class Theme {
         return withAlpha(rgb, alpha);
     }
 
-    /** Returns [hue, saturation, value] in 0..1 range. */
+    // [hue, saturation, value], all 0..1
     public static float[] argbToHsv(int argb) {
         int r = (argb >> 16) & 0xFF;
         int g = (argb >> 8)  & 0xFF;
