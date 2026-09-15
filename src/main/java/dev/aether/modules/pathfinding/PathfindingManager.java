@@ -9,6 +9,7 @@ import dev.aether.modules.pathfinding.execution.FlyExecutor;
 import dev.aether.modules.pathfinding.execution.FlightGuidance;
 import dev.aether.modules.pathfinding.execution.FlightPathClearance;
 import dev.aether.modules.pathfinding.movement.FlightPathSmoother;
+import dev.aether.modules.pathfinding.movement.FlightCollisionChecker;
 import dev.aether.modules.pathfinding.execution.PathExecutor;
 import dev.aether.modules.pathfinding.movement.PathSmoother;
 import dev.aether.modules.pathfinding.movement.WalkabilityChecker;
@@ -656,7 +657,9 @@ public final class PathfindingManager {
         // Create checker once; reused for solid-check, pathfinding, and smoothing.
         final WalkabilityChecker sharedChecker = mc.level != null ? new WalkabilityChecker(mc.level) : null;
         final int finalY;
-        FlyPathProcessor flyProcessor = fly && sharedChecker != null ? new FlyPathProcessor(sharedChecker) : null;
+        FlightCollisionChecker flightChecker = fly && sharedChecker != null
+                ? new FlightCollisionChecker(sharedChecker) : null;
+        FlyPathProcessor flyProcessor = flightChecker != null ? new FlyPathProcessor(flightChecker) : null;
         if (flyProcessor != null && !flyProcessor.hasFlightClearance(x, y, z)
                 && flyProcessor.hasFlightClearance(x, y + 1, z)) {
             finalY = y + 1;
@@ -670,16 +673,11 @@ public final class PathfindingManager {
         goalY = finalY;
         goalZ = z;
 
-        if (mc.player != null) {
+        if (mc.player != null && (!fly || PathVisualizer.isTransientSessionActive() && flyRepathCount == 0)) {
             ClientUtils.sendMessage("\u00A7eFinding path to "
                             + x + ", " + finalY + ", " + z + "...", false);
         }
 
-        final int sx = (int) Math.floor(mc.player.getX());
-        final int sz = (int) Math.floor(mc.player.getZ());
-        final int sy = resolveStartY(sharedChecker, mc.player.getX(), mc.player.getY(), mc.player.getZ());
-
-        PathPosition start  = new PathPosition(sx, sy, sz);
         PathPosition target = new PathPosition(x, finalY, z);
 
         if (fly) {
@@ -690,6 +688,17 @@ public final class PathfindingManager {
                 if (mc.player != null) {
                     ClientUtils.sendMessage("\u00A7cCannot fly pathfind without a loaded world.", false);
                 }
+                return;
+            }
+
+            PathPosition start = flightChecker.findStart(mc.player.position(), mc.player.getBoundingBox());
+            if (start == null) {
+                boolean announce = PathVisualizer.isTransientSessionActive();
+                navigating = false;
+                activeMode = NavigationMode.NONE;
+                clearTransientDebugRenderingIfActive();
+                ClientUtils.sendDebugMessage("No reachable fly route start near the player.");
+                if (announce) ClientUtils.sendMessage("\u00A7cNo fly path found!", false);
                 return;
             }
 
@@ -707,6 +716,9 @@ public final class PathfindingManager {
                         handleFlyResult(mc, result, config, x, finalY, z, startMs, pathfinder);
                     }));
         } else {
+            PathPosition start = new PathPosition(Mth.floor(mc.player.getX()),
+                    resolveStartY(sharedChecker, mc.player.getX(), mc.player.getY(), mc.player.getZ()),
+                    Mth.floor(mc.player.getZ()));
             // Walk pathfinding - async via CompletableFuture work-stealing pool
             // sharedChecker is reused for pathfinding and smoothing (no redundant allocation)
             PathfinderConfiguration config = createWalkPathfinderConfiguration(sharedChecker, true);
@@ -1263,10 +1275,12 @@ public final class PathfindingManager {
         }
 
         if (!hasPath || positions.isEmpty()) {
+            boolean announce = PathVisualizer.isTransientSessionActive();
             navigating = false;
             activeMode = NavigationMode.NONE;
             clearTransientDebugRenderingIfActive();
-            if (mc.player != null) {
+            ClientUtils.sendDebugMessage("No fly path found.");
+            if (mc.player != null && announce) {
                 ClientUtils.sendMessage("\u00A7cNo fly path found!", false);
             }
             return;
@@ -1283,10 +1297,12 @@ public final class PathfindingManager {
         }
 
         if (smoothed.isEmpty()) {
+            boolean announce = PathVisualizer.isTransientSessionActive();
             navigating = false;
             activeMode = NavigationMode.NONE;
             clearTransientDebugRenderingIfActive();
-            if (mc.player != null) {
+            ClientUtils.sendDebugMessage("Fly path build failed.");
+            if (mc.player != null && announce) {
                 ClientUtils.sendMessage("\u00A7cFly path build failed!", false);
             }
             return;
@@ -1301,7 +1317,7 @@ public final class PathfindingManager {
 
         ClientUtils.sendDebugMessage("fly path built: " + smoothed.size() + " waypoint(s), "
                 + exploredCount + " explored, " + elapsedMs + "ms search");
-        if (mc.player != null) {
+        if (mc.player != null && PathVisualizer.isTransientSessionActive() && flyRepathCount == 0) {
             ClientUtils.sendMessage("\u00A7eFly path result: " + resultTypeStr
                             + "\u00A7e | explored: " + exploredCount
                             + " | waypoints: " + smoothed.size()

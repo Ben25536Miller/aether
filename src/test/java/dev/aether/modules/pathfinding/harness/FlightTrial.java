@@ -14,7 +14,6 @@ import dev.aether.modules.pathfinding.pathing.processing.impl.FlyPathProcessor;
 import dev.aether.modules.pathfinding.pathing.result.PathfinderResult;
 import dev.aether.modules.pathfinding.wrapper.PathPosition;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -150,12 +149,8 @@ public final class FlightTrial {
             goalY = goalY + 1;
         }
 
-        int sx = Mth.floor(from.x);
-        int sz = Mth.floor(from.z);
-        int sy = Mth.floor(from.y);
-        if (world.isSolid(sx, sy, sz)) {
-            sy = world.isSolid(sx, sy + 1, sz) ? Mth.ceil(from.y) : sy + 1;
-        }
+        PathPosition start = checker.findStart(from, body(from));
+        if (start == null) return null;
 
         PathfinderConfiguration config = PathfinderConfiguration.builder()
                 .provider((position, context) -> null)
@@ -168,7 +163,7 @@ public final class FlightTrial {
                 .build();
 
         PathfinderResult result = new AStarPathfinder(config)
-                .findPath(new PathPosition(sx, sy, sz), new PathPosition(goal.getX(), goalY, goal.getZ()))
+                .findPath(start, new PathPosition(goal.getX(), goalY, goal.getZ()))
                 .toCompletableFuture().join();
         if (!result.successful() && !result.hasFallenBack()) {
             return null;

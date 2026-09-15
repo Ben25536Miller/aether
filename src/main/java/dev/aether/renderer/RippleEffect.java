@@ -182,8 +182,8 @@ public final class RippleEffect {
         GL33C.glBindSampler(0, 0);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, sceneColorTex);
 
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GlStateManager._disableBlend();
+        GlStateManager._disableDepthTest();
         GL11.glDisable(GL11.GL_STENCIL_TEST);
 
         GL30.glBindVertexArray(quadVao);

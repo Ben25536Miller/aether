@@ -9,12 +9,20 @@ import net.minecraft.world.phys.shapes.Shapes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.BiPredicate;
 
 public final class FlightPathClearance {
     private static final double EPSILON = 1.0e-6;
     private static final double SEGMENT_LENGTH = 4.0;
 
     private FlightPathClearance() {}
+
+    public static Vec3 clearCorner(Vec3 from, Vec3 to, BiPredicate<Vec3, Vec3> clear) {
+        Vec3 levelled = new Vec3(from.x, to.y, from.z);
+        if (clear.test(from, levelled) && clear.test(levelled, to)) return levelled;
+        Vec3 across = new Vec3(to.x, from.y, to.z);
+        return clear.test(from, across) && clear.test(across, to) ? across : null;
+    }
 
     public static boolean isClear(Minecraft client, Vec3 from, Vec3 to) {
         return isClear(client, from, to, 0.0);
