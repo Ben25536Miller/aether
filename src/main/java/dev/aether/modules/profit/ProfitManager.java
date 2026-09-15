@@ -3,6 +3,7 @@ package dev.aether.modules.profit;
 import dev.aether.macro.MacroStateManager;
 import dev.aether.macro.MacroState;
 import dev.aether.util.TablistUtils;
+import dev.aether.modules.profit.helpers.FarmingXpTracker;
 import net.minecraft.network.chat.Component;
 
 import java.util.LinkedHashMap;
@@ -173,6 +174,7 @@ public final class ProfitManager {
         spraySessionQuantity = 0L;
         CHAT_PARSER.resetSessionState();
         LIVE_TRACKER.resetSessionState();
+        FarmingXpTracker.reset();
         invalidateDisplayCaches();
     }
 

@@ -1,5 +1,6 @@
 package dev.aether.modules.profit;
 
+import dev.aether.config.AetherConfig;
 import dev.aether.macro.MacroState;
 import dev.aether.macro.MacroStateManager;
 import dev.aether.modules.profit.helpers.FarmingXpTracker;
@@ -44,7 +45,11 @@ final class ProfitLiveTracker {
         lastPurseBalance = -1L;
         currentFarmedCrop = "Wheat";
         PetXpTracker.reset();
-        FarmingXpTracker.reset();
+        if (AetherConfig.PERSIST_SESSION_TIMER.get()) {
+            FarmingXpTracker.resetLiveState();
+        } else {
+            FarmingXpTracker.reset();
+        }
         trackingLiveMetrics = false;
     }
 
