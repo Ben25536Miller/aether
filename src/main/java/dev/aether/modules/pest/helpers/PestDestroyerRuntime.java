@@ -19,13 +19,13 @@ final class PestDestroyerRuntime {
     final List<Entity> killedEntities = new CopyOnWriteArrayList<>();
     final PestTargetDeferrals deferredTargets = new PestTargetDeferrals();
     final PestFlightController flightController = new PestFlightController();
+    final PestFlightRecovery flightRecovery = new PestFlightRecovery();
     final Deque<Entity> pestTargetQueue = new ArrayDeque<>();
     final Set<Integer> accountedKilledPestEntityIds = ConcurrentHashMap.newKeySet();
 
     long stateEnteredAt = 0L;
     long lastVacuumUseAt = 0L;
     long lastPreRotateAt = 0L;
-    long flyRetryAfterUnflyAt = 0L;
     long killVacuumHoldStartedAt = 0L;
     long killVacuumRetryPressAt = 0L;
     long killVacuumReleaseUntil = 0L;
@@ -156,7 +156,7 @@ final class PestDestroyerRuntime {
         stateEnteredAt = now;
         stuckTicks = 0;
         approachTicks = 0;
-        flyRetryAfterUnflyAt = 0L;
+        flightRecovery.reset();
         if (newState == PestDestroyer.State.CHECK_NEXT
                 || newState == PestDestroyer.State.FINISH
                 || newState == PestDestroyer.State.IDLE) {
@@ -208,7 +208,7 @@ final class PestDestroyerRuntime {
         targetWithoutSkullTicks = 0;
         resetAirborneRecovery();
         lastVacuumUseAt = 0L;
-        flyRetryAfterUnflyAt = 0L;
+        flightRecovery.reset();
         killVacuumHoldStartedAt = 0L;
         killVacuumRetryPressAt = 0L;
         killVacuumReleaseUntil = 0L;
