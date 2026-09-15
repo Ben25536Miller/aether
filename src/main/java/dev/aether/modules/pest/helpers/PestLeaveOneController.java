@@ -145,6 +145,11 @@ final class PestLeaveOneController {
         resetTracking(runtime);
     }
 
+    static int rememberedPlotCount(PestDestroyerRuntime runtime) {
+        pruneRememberedPlots(runtime);
+        return runtime.navigation.leaveOneSkippedPlots.size();
+    }
+
     static boolean shouldFinishForCounts(int aliveCount, int rememberedPlotCount) {
         return aliveCount == 0 || rememberedPlotCount > 0 && aliveCount <= rememberedPlotCount;
     }

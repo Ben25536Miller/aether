@@ -255,6 +255,19 @@ public final class WalkabilityChecker {
         if (block instanceof VineBlock) return true;
         if (block instanceof LadderBlock) return true;
 
+        // an open trapdoor or door is a thin slab against one side, so the block is traversable
+        // even though its collision shape is not empty. without this a hole covered by open
+        // trapdoors reads as sealed and no route through it exists.
+        if (block instanceof TrapDoorBlock) {
+            return state.getValue(TrapDoorBlock.OPEN);
+        }
+        if (block instanceof DoorBlock) {
+            return state.getValue(DoorBlock.OPEN);
+        }
+        if (block instanceof FenceGateBlock) {
+            return state.getValue(FenceGateBlock.OPEN);
+        }
+
         // General: no full solid collision - use actual level + position (no exceptions)
         VoxelShape shape = state.getCollisionShape(level, mutablePos.set(x, y, z));
         return shape == null || shape.isEmpty();

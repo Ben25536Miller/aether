@@ -31,6 +31,7 @@ final class PestDestroyerRuntime {
     long killVacuumReleaseUntil = 0L;
     int stuckTicks = 0;
     int approachTicks = 0;
+    int flyTapTicks = 0;
 
     int vacuumSlot = -1;
     int stunVacuumSlot = -1;
@@ -156,6 +157,7 @@ final class PestDestroyerRuntime {
         stateEnteredAt = now;
         stuckTicks = 0;
         approachTicks = 0;
+        flyTapTicks = 0;
         flightRecovery.reset();
         if (newState == PestDestroyer.State.CHECK_NEXT
                 || newState == PestDestroyer.State.FINISH
@@ -204,6 +206,7 @@ final class PestDestroyerRuntime {
         flightController.reset();
         stuckTicks = 0;
         approachTicks = 0;
+        flyTapTicks = 0;
         zeroPestTabTicks = 0;
         targetWithoutSkullTicks = 0;
         resetAirborneRecovery();

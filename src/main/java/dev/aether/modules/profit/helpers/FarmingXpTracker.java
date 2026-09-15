@@ -130,6 +130,18 @@ public final class FarmingXpTracker {
         }
     }
 
+    /**
+     * Clears the live sample while keeping the baseline for a persisted macro session.
+     * The next anchor will calculate the total gain from the original session start.
+     */
+    public static void resetLiveState() {
+        synchronized (LOCK) {
+            sessionXpGained = 0L;
+            currentLevel = -1;
+            absoluteXp = -1L;
+        }
+    }
+
     // -- HUD getters -----------------------------------------------------------
 
     public static boolean hasData() {

@@ -80,26 +80,19 @@ final class PestEquipmentController {
             Minecraft client,
             PestDestroyerRuntime runtime,
             Context context) {
-        long elapsed = System.currentTimeMillis() - runtime.stateEnteredAt;
         if (client.player.getAbilities().flying) {
-            ClientUtils.setKeyMappingState(client.options.keyJump, false);
+            PestFlightTapper.release(client);
+            runtime.flyTapTicks = 0;
             context.setState(PestDestroyer.State.CHECK_NEXT);
             return;
         }
 
-        if (elapsed < 50) {
-            ClientUtils.setKeyMappingState(client.options.keyJump, true);
-        } else if (elapsed < 100) {
-            ClientUtils.setKeyMappingState(client.options.keyJump, false);
-        } else if (elapsed < 150) {
-            ClientUtils.setKeyMappingState(client.options.keyJump, true);
-        } else if (elapsed < 200) {
-            ClientUtils.setKeyMappingState(client.options.keyJump, false);
-        } else if (elapsed < 3_000) {
-            runtime.stateEnteredAt = System.currentTimeMillis();
-        } else {
-            ClientUtils.setKeyMappingState(client.options.keyJump, false);
+        if (runtime.flyTapTicks >= PestFlightTapper.TIMEOUT_TICKS) {
+            PestFlightTapper.release(client);
             context.setState(PestDestroyer.State.CHECK_NEXT);
+            return;
         }
+
+        PestFlightTapper.tick(client, runtime.flyTapTicks++);
     }
 }
