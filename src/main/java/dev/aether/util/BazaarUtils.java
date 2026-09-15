@@ -319,12 +319,22 @@ public final class BazaarUtils {
                                      BazaarBuySession purchase) {
         var confirmation = new RetryingClickSequence.Stage("purchase confirmation",
                 purchase::completed, () -> clickPurchaseConfirmation(client, purchase, guiDelay), 30_000L);
+        // a refusal never turns into a confirmation, so stop retrying instead of burning
+        // the whole 30s timeout on it
         boolean completed = RetryingClickSequence.run(java.util.List.of(confirmation), 0L,
-                Math.max(500L, guiDelay), () -> MacroWorkerThread.getInstance().isCancelled(),
+                Math.max(500L, guiDelay),
+                () -> MacroWorkerThread.getInstance().isCancelled() || purchase.blocker() != null,
                 MacroWorkerThread::sleep, message -> ClientUtils.sendDebugMessage("[BazaarUtils] " + message));
         closeScreen(client);
         if (!completed) {
-            msg(client, "§cBazaar purchase was not confirmed. Aborting.");
+            String blocker = purchase.blocker();
+            if (blocker != null) {
+                ClientUtils.sendDebugMessage("[BazaarUtils] Bazaar refused the purchase of "
+                        + count + "x " + purchase.item() + ": " + blocker);
+                msg(client, "§cBazaar refused the buy: §e" + blocker);
+            } else {
+                msg(client, "§cBazaar purchase was not confirmed. Aborting.");
+            }
             return false;
         }
         MacroWorkerThread.sleep(fastDelay);
