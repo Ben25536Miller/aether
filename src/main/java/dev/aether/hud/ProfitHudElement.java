@@ -112,7 +112,7 @@ public class ProfitHudElement extends HudElement {
 
         h += itemCount > 0 ? itemCount * ROW_H : 24f;
         if (showFarmingXp()) {
-            int rows = 1; // header (level + overall progress to 60)
+            int rows = 2; // XP earned + level/progress to 60
             if (AetherConfig.FARMING_HUD_XP_RATE.get()) rows++;
             if (AetherConfig.FARMING_HUD_ETA_NEXT.get()) rows++;
             if (AetherConfig.FARMING_HUD_ETA_MAX.get()) rows++;
@@ -210,6 +210,11 @@ public class ProfitHudElement extends HudElement {
             boolean maxed = dev.aether.modules.profit.helpers.FarmingXpTracker.isMaxed();
             int level = dev.aether.modules.profit.helpers.FarmingXpTracker.getLevel();
             float prog = dev.aether.modules.profit.helpers.FarmingXpTracker.getProgressToMax();
+
+            row(nvg, ry, "Farming XP earned",
+                    fmt(dev.aether.modules.profit.helpers.FarmingXpTracker.getSessionXpGained()),
+                    Theme.HUD_SUCCESS);
+            ry += ROW_H;
 
             // Header: current level + overall progress to 60
             row(nvg, ry, "Farming " + level + " → 60",

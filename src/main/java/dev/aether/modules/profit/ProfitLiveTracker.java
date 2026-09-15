@@ -161,7 +161,6 @@ final class ProfitLiveTracker {
             PetXpTracker.update();
         }
 
-        FarmingXpTracker.tick();
         if (client.player.tickCount % PET_XP_SAMPLE_INTERVAL_TICKS == 0) {
             FarmingXpTracker.updateFromTablist(client);
         }
