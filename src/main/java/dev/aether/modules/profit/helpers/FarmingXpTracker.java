@@ -209,13 +209,33 @@ public final class FarmingXpTracker {
 
     // -- Internals -------------------------------------------------------------
 
-    private static void setAnchor(int level, long currentXpInLevel) {
+    static void setAnchor(int level, long currentXpInLevel) {
         if (level < 0 || level > MAX_LEVEL) {
             return;
         }
         synchronized (LOCK) {
+            long nextAbsoluteXp = XP_TO_LEVEL[level] + Math.max(0L, currentXpInLevel);
+
+            // The tab list can arrive first on startup and establish level 60 with
+            // no overflow. The first action-bar x/0 value is the existing post-cap
+            // total, so use it as the session baseline instead of counting it.
+            boolean initializingPostCapBaseline = level == MAX_LEVEL
+                    && currentXpInLevel > 0L
+                    && absoluteXp == XP_TO_MAX
+                    && sessionStartAbsoluteXp == XP_TO_MAX
+                    && sessionXpGained == 0L;
+            if (initializingPostCapBaseline) {
+                sessionStartAbsoluteXp = nextAbsoluteXp;
+            }
+
+            // At max level the tab list reports MAX, while the action bar can still
+            // report the post-cap XP as x/0. Do not let the tab-list anchor erase it.
+            if (level == MAX_LEVEL && currentXpInLevel == 0L && absoluteXp > nextAbsoluteXp) {
+                nextAbsoluteXp = absoluteXp;
+            }
+
             currentLevel = level;
-            absoluteXp = XP_TO_LEVEL[level] + Math.max(0L, currentXpInLevel);
+            absoluteXp = nextAbsoluteXp;
             if (sessionStartAbsoluteXp < 0L) {
                 sessionStartAbsoluteXp = absoluteXp;
             }
@@ -224,7 +244,10 @@ public final class FarmingXpTracker {
         }
     }
 
-    private static int levelForNeeded(long needed) {
+    static int levelForNeeded(long needed) {
+        if (needed == 0L) {
+            return MAX_LEVEL;
+        }
         Integer exact = NEEDED_TO_LEVEL.get(needed);
         if (exact != null) {
             return exact;

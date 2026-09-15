@@ -223,8 +223,7 @@ public class ProfitHudElement extends HudElement {
 
             if (AetherConfig.FARMING_HUD_XP_RATE.get()) {
                 long perHour = dev.aether.modules.profit.helpers.FarmingXpTracker.getXpPerHour();
-                String rateStr = maxed ? "MAX" : fmt(perHour);
-                row(nvg, ry, "Farming XP/hr", rateStr, Theme.HUD_SUCCESS);
+                row(nvg, ry, "Farming XP/hr", fmt(perHour), Theme.HUD_SUCCESS);
                 ry += ROW_H;
             }
 
