@@ -3,6 +3,8 @@ package dev.aether.macro;
 import dev.aether.util.ClientUtils;
 import net.minecraft.client.Minecraft;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -58,6 +60,16 @@ public final class MacroWorkerThread {
         queue.add(new TaskEntry(taskName, task, generation));
     }
 
+    // for a task whose body is the only thing that clears a flag its caller already set: dropping
+    // it strands that flag, so clearPendingTasks keeps it and only an explicit cancel drops it
+    public void submitCritical(String taskName, Runnable task) {
+        long generation = Thread.currentThread() == workerThread
+                ? currentTaskGeneration : cancellationGeneration.get();
+        if (generation != cancellationGeneration.get()) return;
+        debugLog("Queuing critical task: [" + taskName + "] (queue size before: " + queue.size() + ")");
+        queue.add(new TaskEntry(taskName, task, generation, true));
+    }
+
     // also drains everything still pending
     public void cancelCurrent() {
         cancellationGeneration.incrementAndGet();
@@ -79,9 +91,18 @@ public final class MacroWorkerThread {
 
     // leaves the running task alone
     public void clearPendingTasks() {
-        int drained = queue.size();
-        queue.clear();
-        debugLog("Cleared " + drained + " pending task(s) from queue.");
+        List<TaskEntry> pending = new ArrayList<>();
+        queue.drainTo(pending);
+        int dropped = 0;
+        for (TaskEntry entry : pending) {
+            if (entry.critical) {
+                queue.add(entry);
+            } else {
+                dropped++;
+            }
+        }
+        debugLog("Cleared " + dropped + " pending task(s) from queue."
+                + (queue.isEmpty() ? "" : " Kept " + queue.size() + " critical task(s)."));
     }
 
     public boolean isCancelled() {
@@ -188,11 +209,17 @@ public final class MacroWorkerThread {
         final String name;
         final Runnable task;
         final long generation;
+        final boolean critical;
 
         TaskEntry(String name, Runnable task, long generation) {
+            this(name, task, generation, false);
+        }
+
+        TaskEntry(String name, Runnable task, long generation, boolean critical) {
             this.name = name;
             this.task = task;
             this.generation = generation;
+            this.critical = critical;
         }
     }
 }
