@@ -313,13 +313,20 @@ public final class PestManagerRegistryProvider extends AbstractModulesRegistryPr
                         })
                         .withDecimals(0))
                 .add(FarmingSettingsFactory.ballsackShredderTriggerDelaySetting())
+                .add(new ToggleSetting("Look Down After Warps",
+                        AetherConfig.BALLSACK_LOOK_DOWN::get,
+                        v -> {
+                            AetherConfig.BALLSACK_LOOK_DOWN.set(v);
+                            AetherConfig.save();
+                        }))
                 .add(new SliderSetting("Look Down Time", 0, 3000,
                         () -> (float) AetherConfig.BALLSACK_LOOK_DOWN_TIME_MS.get(),
                         v -> {
                             AetherConfig.BALLSACK_LOOK_DOWN_TIME_MS.set(Math.round(v));
                             AetherConfig.save();
                         })
-                        .withDecimals(0).withSuffix("ms")));
+                        .withDecimals(0).withSuffix("ms")
+                        .visibleWhen(AetherConfig.BALLSACK_LOOK_DOWN::get)));
 
         groups.add(SettingGroup.of(
                         "AOTV to Roof",

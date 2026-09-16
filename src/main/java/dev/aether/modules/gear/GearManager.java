@@ -346,6 +346,7 @@ public class GearManager {
     public static void cleanupTick() {
         Minecraft client = Minecraft.getInstance();
         LoadoutManager.cancelIfDisabled(client);
+        LoadoutManager.tickWardrobeWatchdog();
         if (LoadoutManager.loadoutCleanupTicks > 0) {
             LoadoutManager.loadoutCleanupTicks--;
             if (client.player != null) {
