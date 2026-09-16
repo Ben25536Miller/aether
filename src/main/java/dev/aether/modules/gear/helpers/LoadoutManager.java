@@ -17,6 +17,9 @@ import net.minecraft.world.inventory.Slot;
 
 public class LoadoutManager {
     private static final long LOADOUT_CHAT_RETRY_DELAY_MS = 500L;
+    private static final long WARDROBE_STRAND_TIMEOUT_MS = 5_000L;
+
+    private static volatile long wardrobeIdleSinceMs = 0L;
 
     public static volatile boolean isSwappingLoadout = false;
     public static volatile long loadoutInteractionTime = 0;
@@ -48,6 +51,34 @@ public class LoadoutManager {
         loadoutFirstClickDelayMs = 0;
         loadoutTimelineStartTime = 0;
         loadoutChatConfirmed = false;
+        wardrobeIdleSinceMs = 0L;
+    }
+
+    // WARDROBE is only cleared by a swap that completes or aborts; any path that drops one on the
+    // floor strands the state and silently kills every pest trigger until a relog
+    public static void tickWardrobeWatchdog() {
+        if (isSwappingLoadout
+                || !loadoutGuiCloseComplete
+                || loadoutCleanupTicks > 0
+                || !MacroStateManager.isMacroRunning()
+                || MacroStateManager.getCurrentState() != MacroState.State.WARDROBE) {
+            wardrobeIdleSinceMs = 0L;
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (wardrobeIdleSinceMs == 0L) {
+            wardrobeIdleSinceMs = now;
+            return;
+        }
+        if (now - wardrobeIdleSinceMs < WARDROBE_STRAND_TIMEOUT_MS) {
+            return;
+        }
+
+        wardrobeIdleSinceMs = 0L;
+        ClientUtils.sendDebugMessage("Loadout watchdog: WARDROBE state stranded with no swap in flight for "
+                + WARDROBE_STRAND_TIMEOUT_MS + "ms; restoring FARMING.");
+        MacroStateManager.setCurrentState(MacroState.State.FARMING);
     }
 
     public static void triggerLoadoutSwap(Minecraft client, int slot) {
@@ -267,6 +298,12 @@ public class LoadoutManager {
     private static void handleLoadoutCompletion(Minecraft client) {
         RestartManager.onWardrobeSwapCompleted(client);
 
+        // the flag means "do not restart farming", not "stay in WARDROBE" - leaving the state
+        // latched here silently kills every pest trigger until a relog
+        if (MacroStateManager.getCurrentState() == MacroState.State.WARDROBE) {
+            MacroStateManager.setCurrentState(MacroState.State.FARMING);
+        }
+
         if (!shouldRestartFarmingAfterSwap) {
             return;
         }
@@ -282,10 +319,6 @@ public class LoadoutManager {
             ClientUtils.sendDebugMessage("Loadout completion deferred because pest exchange has priority.");
             AutoPestExchangeManager.tryTriggerPending(client);
             return;
-        }
-
-        if (MacroStateManager.getCurrentState() == MacroState.State.WARDROBE) {
-            MacroStateManager.setCurrentState(MacroState.State.FARMING);
         }
 
         ClientUtils.sendMessage("\u00A7aLoadout swap finished. Restarting farming...", true);
