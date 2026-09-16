@@ -421,6 +421,7 @@ public class PestManager {
 
     public static void update() {
         Minecraft client = Minecraft.getInstance();
+        PestReturnManager.tickFinishingWatchdog();
         checkTabListForPests(client, MacroStateManager.getCurrentState());
     }
 
