@@ -60,6 +60,12 @@ public final class PestBallsackShredder {
             return Result.unmeasured(true, startingPests);
         }
 
+        if (!AetherConfig.BALLSACK_LOOK_DOWN.get()) {
+            ClientUtils.sendDebugMessage("Ballsack Shredder: look-down disabled; "
+                    + "skipping vacuum hold and entering pest cleaning immediately.");
+            return Result.unmeasured(!shouldAbort(client, sessionId), startingPests);
+        }
+
         List<Entity> trackedPests = PestClientThread.call(
                 client,
                 () -> List.copyOf(PestTargetTracker.getLoadedPests(client)),

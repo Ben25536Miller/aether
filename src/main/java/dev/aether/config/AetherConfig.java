@@ -394,6 +394,7 @@ public final class AetherConfig {
         public static final ListEntry<String> BALLSACK_SHREDDER_PLOTS = Config.list("ballsackShredderPlots",
                         Collections.emptyList(), String.class);
         public static final IntEntry BALLSACK_WARPS = Config.integer("ballsackWarps", 2).range(1, 5);
+        public static final BooleanEntry BALLSACK_LOOK_DOWN = Config.bool("ballsackLookDown", true);
         public static final IntEntry BALLSACK_LOOK_DOWN_TIME_MS = Config.integer("ballsackLookDownTimeMs", 1000)
                         .range(0, 3000);
         public static final BooleanEntry PEST_AOTV_BETWEEN = Config.bool("pestAotvBetween", false);
