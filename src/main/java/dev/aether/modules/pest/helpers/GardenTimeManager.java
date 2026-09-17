@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 
 public final class GardenTimeManager {
 
-    private static final int TIME_MENU_SLOT = 50;
     private static final int DAYTIME_SLOT = 11;
     private static final int NIGHTTIME_SLOT = 13;
     private static final char DAYTIME_MARKER = '\u2600';
@@ -71,21 +70,7 @@ public final class GardenTimeManager {
         ClientUtils.sendDebugMessage("GardenTimeManager: switching garden time to " + label);
         switchingGardenTime = true;
         try {
-            ClientUtils.sendCommand("/desk");
-
-            if (!waitForScreenTitle(client, "desk", 5000L)) {
-                ClientUtils.sendDebugMessage("GardenTimeManager: desk GUI did not open in time.");
-                return false;
-            }
-
-            if (!MacroWorkerThread.sleep(ClientUtils.getGuiClickDelayMs(true))) {
-                return false;
-            }
-
-            if (!clickSlot(client, TIME_MENU_SLOT)) {
-                ClientUtils.sendDebugMessage("GardenTimeManager: failed to click desk slot " + TIME_MENU_SLOT);
-                return false;
-            }
+            ClientUtils.sendCommand("/islandtime");
 
             if (!waitForScreenTitle(client, "garden time", 5000L)) {
                 ClientUtils.sendDebugMessage("GardenTimeManager: garden time GUI did not open in time.");
